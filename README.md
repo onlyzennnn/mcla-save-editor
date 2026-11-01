@@ -5,6 +5,8 @@
 Save editor and format documentation for **Midnight Club: Los Angeles** (Xbox 360, Complete Edition),
 as written by the [MC_LA_Recompiled](https://github.com/robertoaraujo77/MC_LA_Recompiled) PC runtime.
 
+![The editor with a save open, showing money, reputation, career progression and the garage slots](og.png)
+
 The editor is useful. The format documentation below is the point: as far as I can tell the
 `mc4.sav` layout has never been published anywhere. The save editors floating around fan forums
 are closed binaries from 2013 with no notes attached, so anyone who wants to touch this file
