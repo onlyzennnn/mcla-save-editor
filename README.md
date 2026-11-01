@@ -1,4 +1,4 @@
-# mc4.sav
+# mc4.sav — Midnight Club: Los Angeles save editor
 
 **English** · [Português](README.pt-BR.md)
 
