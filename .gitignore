@@ -1,0 +1,37 @@
+# Dados do jogo. Nada disto e nosso para redistribuir.
+*.iso
+*.7z
+*.rpf
+*.xex
+*.bik
+*.pad
+nxeart
+0x*
+$SystemUpdate/
+
+# Saves pessoais, em qualquer forma
+*.sav
+*.sav.header
+*.bak-*
+B13EBABEBABEBABE/
+userdata/
+MCLA-save-*/
+MCLA-save-*.zip
+MCLA-*.zip
+
+# Save de PS3 (cifrado, e tambem nao e nosso)
+RAGE.SAV
+PARAM.*
+ICON0.PNG
+
+# Sobras do runtime e da instalacao
+achievements/
+cache/
+config-backups/
+backups/
+*.log
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store

@@ -1,0 +1,978 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editor de Save MCLA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+/* Mundo visual: o HUD do proprio MCLA. Painel escuro com borda clara, cabecalho
+   amarelo em caixa alta, selecao ciano, numeros em mono tabular. Tema unico
+   escuro, escolhido pela cena de uso: editar o save ao lado do jogo, a noite. */
+:root {
+  --void:        #05070a;
+  --panel:       #0e1319;
+  --panel-rise:  #161d26;
+  --edge:        #2b3642;
+  --edge-bright: #8a9aa8;
+  --ink:         #e6edf3;
+  --ink-dim:     #b0c0cd;
+  --ink-faint:   #8fa2b1;  /* 6.3:1 sobre o painel, o tom anterior dava 3.9:1 */
+  --signal:      #48d6c8;
+  --signal-deep: #0f3b3a;
+  --amber:       #f2c230;
+  --alert:       #ff6b5e;
+  --ok:          #6ee787;
+
+  --display: "Chakra Petch", "Segoe UI Semibold", system-ui, sans-serif;
+  --data: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --out: cubic-bezier(0.23, 1, 0.32, 1);
+  --r: 4px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 700px at 72% -12%, #10212b 0%, transparent 62%),
+    var(--void);
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--signal); color: #04100f; }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: var(--void); }
+::-webkit-scrollbar-thumb { background: var(--edge); border: 3px solid var(--void); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--edge-bright); }
+* { scrollbar-color: var(--edge) var(--void); scrollbar-width: thin; }
+
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+input, select, button { font: inherit; color: inherit; }
+input { caret-color: var(--signal); }
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-inline: max(18px, env(safe-area-inset-left, 0px)) max(18px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+
+/* ---------- cabecalho ---------- */
+
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--edge);
+  margin-bottom: 22px;
+}
+.mark { flex: none; color: var(--amber); }
+.masthead h1 {
+  margin: 0;
+  font-size: clamp(19px, 3.4vw, 25px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.filetag {
+  margin-left: auto;
+  font-family: var(--data);
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 580px) {
+  .masthead { flex-wrap: wrap; row-gap: 8px; }
+  .masthead h1 { font-size: 23px; }
+  .filetag { flex-basis: 100%; margin-left: 0; text-align: left; }
+}
+
+/* ---------- estado vazio ---------- */
+
+.dropzone {
+  border: 1px dashed var(--edge);
+  border-radius: var(--r);
+  background: var(--panel);
+  padding: clamp(36px, 9vw, 76px) 24px;
+  text-align: center;
+  transition: border-color 180ms var(--out), background 180ms var(--out);
+}
+.dropzone.hot { border-color: var(--signal); background: var(--panel-rise); }
+.dropzone h2 {
+  margin: 14px 0 6px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.dropzone p {
+  margin: 0 auto;
+  max-width: 54ch;
+  color: var(--ink-dim);
+  font-size: 14px;
+}
+.dropzone .path {
+  display: block;
+  margin-top: 14px;
+  font-family: var(--data);
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- botoes ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--edge-bright);
+  border-radius: var(--r);
+  background: var(--panel-rise);
+  color: var(--ink);
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 140ms var(--out), background 140ms var(--out), border-color 140ms var(--out);
+}
+.btn:active { transform: scale(0.97); }
+.btn.primary {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: #04100f;
+}
+.btn.primary:disabled {
+  background: var(--panel-rise);
+  border-color: var(--edge);
+  color: var(--ink-faint);
+  cursor: not-allowed;
+}
+.btn:disabled { transform: none; }
+@media (hover: hover) and (pointer: fine) {
+  .btn:not(:disabled):hover { background: var(--edge); }
+  .btn.primary:not(:disabled):hover { background: #5fe6d8; border-color: #5fe6d8; }
+}
+
+/* ---------- paineis ---------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.panel {
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  background: var(--panel);
+  min-width: 0;
+}
+.panel > header {
+  padding: 11px 15px;
+  border-bottom: 1px solid var(--edge);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.panel > header .count {
+  margin-left: auto;
+  font-family: var(--data);
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-faint);
+}
+.panel .body { padding: 15px; }
+
+/* ---------- campos ---------- */
+
+.field { display: grid; gap: 6px; }
+.field + .field { margin-top: 15px; }
+.field label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.field .at {
+  font-family: var(--data);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+}
+input[type="text"], input[type="number"], select {
+  width: 100%;
+  background: var(--void);
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  padding: 9px 11px;
+  font-family: var(--data);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 140ms var(--out);
+}
+input:hover, select:hover { border-color: var(--edge-bright); }
+input::placeholder { color: var(--ink-faint); }
+.hint { font-size: 12px; color: var(--ink-faint); }
+.hint.warn { color: var(--amber); }
+
+/* ---------- mapa de secoes ---------- */
+
+.sections { width: 100%; border-collapse: collapse; font-family: var(--data); font-size: 12px; }
+.sections th {
+  text-align: left;
+  font-family: var(--display);
+  font-size: 11.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 600;
+  padding: 0 0 7px;
+}
+.sections td { padding: 3px 0; color: var(--ink-dim); }
+.sections td:nth-child(2), .sections td:nth-child(3) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding-left: 14px;
+}
+.sections tr td:first-child { color: var(--ink); }
+
+/* ---------- garagem ---------- */
+
+.slots { display: flex; flex-direction: column; }
+.slot {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 118px 92px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 15px 7px 0;
+  border-bottom: 1px solid #1b232c;
+  position: relative;
+}
+.slot:last-child { border-bottom: 0; }
+.slot::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: transparent;
+  transition: background 160ms var(--out);
+}
+.slot.filled::before { background: var(--signal); }
+.slot .n {
+  font-family: var(--data);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.slot.filled .n { color: var(--signal); }
+.slot .plate {
+  font-family: var(--data);
+  font-size: 12px;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.slot select { padding: 6px 9px; font-size: 13px; }
+.slot input.lbl { padding: 6px 9px; font-size: 12.5px; }
+.slot input.plate {
+  padding: 6px 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.slot input.plate:invalid { border-color: var(--alert); }
+
+/* ---------- progressao ---------- */
+
+.prog {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+  gap: 4px;
+}
+.cell {
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  background: var(--void);
+  color: var(--ink-faint);
+  font-family: var(--data);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  padding: 6px 0;
+  cursor: pointer;
+  transition: background 130ms var(--out), color 130ms var(--out), border-color 130ms var(--out), transform 130ms var(--out);
+}
+.cell:active { transform: scale(0.94); }
+.cell[aria-pressed="true"] {
+  background: var(--signal-deep);
+  border-color: var(--signal);
+  color: var(--signal);
+}
+@media (hover: hover) and (pointer: fine) {
+  .cell:hover { border-color: var(--edge-bright); }
+}
+.bulk { display: flex; gap: 8px; margin-top: 13px; flex-wrap: wrap; }
+.bulk .btn { padding: 7px 12px; font-size: 12px; }
+
+/* ---------- stats ---------- */
+
+.filter { margin-bottom: 11px; }
+.statlist { max-height: 430px; overflow-y: auto; margin: 0 -15px -15px; padding: 0 15px 15px; }
+.stat {
+  display: grid;
+  grid-template-columns: 52px 1fr 128px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid #1b232c;
+}
+.stat:last-child { border-bottom: 0; }
+.stat .key {
+  font-family: var(--data);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--signal);
+}
+.stat .kind {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.stat input { padding: 5px 9px; font-size: 12.5px; text-align: right; }
+.empty-note { color: var(--ink-faint); font-size: 13px; padding: 10px 0; }
+.slot.beyond { opacity: 0.42; }
+@media (max-width: 620px) {
+  .slot { grid-template-columns: 26px minmax(0, 1fr); row-gap: 6px; }
+  .slot .plate { grid-column: 2; text-align: left; }
+  .slot input.lbl { grid-column: 2; }
+}
+
+/* ---------- barra de acao ---------- */
+
+.actionbar {
+  position: sticky;
+  bottom: 0;
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 13px 15px calc(13px + env(safe-area-inset-bottom, 0px));
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  background: var(--panel-rise);
+}
+.readout {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-family: var(--data);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-dim);
+}
+.readout b { color: var(--amber); font-weight: 700; }
+.actionbar .btn:last-child { margin-left: auto; }
+
+.status { font-size: 12.5px; }
+.status.bad { color: var(--alert); }
+.status.good { color: var(--ok); }
+
+.notice {
+  margin-top: 14px;
+  border: 1px solid var(--edge);
+  border-left: 1px solid var(--alert);
+  border-radius: var(--r);
+  background: var(--panel);
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.notice strong { color: var(--alert); font-weight: 600; }
+
+/* ---------- um momento autoral: a leitura do save ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal > * {
+    animation: rise 420ms var(--out) both;
+  }
+  .reveal > *:nth-child(2) { animation-delay: 55ms; }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); filter: blur(3px); }
+    to   { opacity: 1; transform: none; filter: none; }
+  }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 2.6 20.5 7.3v9.4L12 21.4 3.5 16.7V7.3Z"/>
+      <path d="M12 8.1 15.8 10.2v4.2L12 16.5 8.2 14.4v-4.2Z"/>
+    </svg>
+    <h1>Editor de Save</h1>
+    <div class="filetag" id="filetag">nenhum arquivo aberto</div>
+  </div>
+
+  <section id="empty">
+    <div class="dropzone" id="drop">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--edge-bright)" aria-hidden="true">
+        <path d="M12 16V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M4 16v3.2A1.8 1.8 0 0 0 5.8 21h12.4a1.8 1.8 0 0 0 1.8-1.8V16"/>
+      </svg>
+      <h2>Arraste o mc4.sav aqui</h2>
+      <p>Tudo acontece no seu navegador. O arquivo não sai da sua máquina, e o editor devolve um save do mesmo tamanho do original.</p>
+      <span class="path">userdata\B13EBABEBABEBABE\545407F8\00000001\mc4.sav\mc4.sav</span>
+      <div style="margin-top:20px"><button class="btn" id="pick">Escolher arquivo</button></div>
+      <input type="file" id="file" hidden>
+    </div>
+    <div class="notice" id="err" hidden></div>
+  </section>
+
+  <section id="editor" hidden>
+    <div class="grid reveal">
+
+      <div style="display:grid;gap:18px;min-width:0">
+        <div class="panel">
+          <header>Carteira</header>
+          <div class="body">
+            <div class="field">
+              <label for="money">Dinheiro <span class="at">Career+0x2D9</span></label>
+              <input type="number" id="money" min="0" max="2000000000" step="1">
+            </div>
+            <div class="field">
+              <label for="rep">Reputação <span class="at">Career+0x2E1</span></label>
+              <input type="number" id="rep" min="0" max="2000000000" step="1">
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <header>Progressão <span class="count" id="progCount"></span></header>
+          <div class="body">
+            <div class="prog" id="prog"></div>
+            <div class="bulk">
+              <button class="btn" id="progAll">Marcar todas</button>
+              <button class="btn" id="progNone">Limpar todas</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <header>Seções <span class="count" id="secCount"></span></header>
+          <div class="body">
+            <table class="sections">
+              <thead><tr><th>Nome</th><th>Início</th><th>Bytes</th></tr></thead>
+              <tbody id="secBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;gap:18px;min-width:0">
+        <div class="panel">
+          <header>Garagem <span class="count" id="garCount"></span></header>
+          <div class="slots" id="slots"></div>
+        </div>
+
+        <div class="panel">
+          <header>Estatísticas <span class="count" id="statCount"></span></header>
+          <div class="body">
+            <input class="filter" type="text" id="statFilter" placeholder="filtrar por código, ex: gWIN">
+            <div class="statlist" id="stats"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="actionbar">
+      <div class="readout">
+        <span>CARROS <b id="roCars">0</b></span>
+        <span>DINHEIRO <b id="roMoney">0</b></span>
+        <span>REP <b id="roRep">0</b></span>
+      </div>
+      <span class="status" id="status"></span>
+      <button class="btn primary" id="save">Baixar mc4.sav</button>
+    </div>
+    <div class="notice" id="gap" hidden></div>
+  </section>
+
+</div>
+
+<script>
+"use strict";
+
+/* Formato do mc4.sav, obtido por engenharia reversa e verificado em jogo.
+   header: u32 capacidade | u32 numSecoes
+   secao : u32 nameLen | name | u8 flag | u32 size | data[size]   (repete)
+   Inteiros big-endian: o jogo e PowerPC. Nao ha checksum, o walk fecha no EOF. */
+
+var OFF = {
+  money: 0x2D9,      // Career
+  rep: 0x2E1,        // Career
+  progCount: 0x2E5,  // Career
+  progBase: 0x2E9,   // Career, blocos de 65 bytes, flag de concluido em +64
+  progStride: 65,
+  cars: 0x53F,       // LocalOptions, quantos slots o jogo le, em sequencia do 0
+  carsIdx: 0x543,    // LocalOptions, indice do ultimo (= cars - 1)
+  slot0: 0x24FD,     // LocalOptions
+  slotStride: 8176,
+  slotLabel: 32,     // campo de rotulo dentro do slot
+  slotPlate: 2186
+};
+
+/* Roster extraido de tune/vehicle/0xe94bde63. So estes nomes carregam. */
+var ROSTER = [
+  "vp_am_vantage_07","vp_aud_r8_08","vp_aud_rs4_07","vp_buk_grandnational_87",
+  "vp_chv_camaro_06","vp_chv_camaro_06_DUB","vp_chv_camaross_69","vp_chv_cobalt_05",
+  "vp_chv_corvettez06_07","vp_chv_impala_96","vp_chv_police_96","vp_citybus_07",
+  "vp_cry_300c_06","vp_dge_challenger_06","vp_dge_challenger_06_DUB",
+  "vp_dge_challenger_70","vp_dge_charger_06","vp_dsn_280z_75","vp_duc_999r_06",
+  "vp_duc_monster_s4r_07","vp_frd_boss302_69","vp_frd_cobra_04","vp_frd_focus_04",
+  "vp_frd_gt_06","vp_frd_mustang_06","vp_kaw_ninja_zx14_06","vp_lam_gallardo_06",
+  "vp_lam_miura_71","vp_lam_murcielago_06","vp_lam_murcielago_06_DUB",
+  "vp_mbz_s600_07","vp_mbz_s600_07_DUB","vp_mbz_sl65_07","vp_mit_3000gt_99",
+  "vp_mit_eclipse_99","vp_mit_evo_06","vp_mzd_rx7_95","vp_mzd_rx8_06",
+  "vp_nsn_240sx_98","vp_nsn_350z_06","vp_nsn_skyline_99","vp_pon_solstice_06",
+  "vp_pon_transam_79","vp_sln_s281_06","vp_sln_s7_06","vp_vw_golf_07",
+  "vp_vw_golf_83","vp_vw_scirocco_88"
+];
+
+var bytes = null, view = null, secs = null, fileName = "mc4.sav";
+var el = function (id) { return document.getElementById(id); };
+
+function autoLabel(prefab) {
+  var m = /^vp_[a-z0-9]+_(.+?)_(\d{2})(_DUB)?$/.exec(prefab);
+  if (!m) return prefab.toUpperCase();
+  return m[2] + " " + m[1].replace(/_/g, " ").toUpperCase() + (m[3] ? " DUB" : "");
+}
+
+function ascii(from, len) {
+  var out = "";
+  for (var i = 0; i < len; i++) {
+    var c = bytes[from + i];
+    if (c < 0x20 || c > 0x7E) break;
+    out += String.fromCharCode(c);
+  }
+  return out;
+}
+
+/* Grava texto + \0 e completa com 0xCD, que e o padding do proprio jogo. */
+function writeField(at, width, text) {
+  for (var i = 0; i < width; i++) {
+    bytes[at + i] = i < text.length ? text.charCodeAt(i) : (i === text.length ? 0 : 0xCD);
+  }
+}
+
+function parse(buf) {
+  var b = new Uint8Array(buf), dv = new DataView(buf), list = [], o = 8;
+  while (o + 4 <= b.length) {
+    var nameLen = dv.getUint32(o);
+    if (nameLen === 0 || nameLen > 64) break;
+    if (o + 4 + nameLen + 5 > b.length) break;
+    var name = "", ok = true;
+    for (var i = 0; i < nameLen; i++) {
+      var c = b[o + 4 + i];
+      if (c < 0x20 || c > 0x7E) { ok = false; break; }
+      name += String.fromCharCode(c);
+    }
+    if (!ok) break;
+    var size = dv.getUint32(o + 4 + nameLen + 1);
+    var data = o + 4 + nameLen + 5;
+    if (data + size > b.length) break;
+    list.push({ name: name, flag: b[o + 4 + nameLen], size: size, data: data });
+    o = data + size;
+  }
+  return { list: list, endedAt: o, valid: o === b.length && list.length > 0 };
+}
+
+function sec(name) {
+  for (var i = 0; i < secs.list.length; i++) if (secs.list[i].name === name) return secs.list[i];
+  return null;
+}
+function u32(at) { return view.getUint32(at); }
+function setU32(at, v) { view.setUint32(at, v >>> 0); }
+
+function slotAt(n) { return sec("LocalOptions").data + OFF.slot0 + n * OFF.slotStride; }
+
+function slotCount() {
+  var lo = sec("LocalOptions");
+  return Math.floor((lo.size - OFF.slot0) / OFF.slotStride);
+}
+
+function readSlot(n) {
+  var o = slotAt(n);
+  var name = ascii(o, 32);
+  return {
+    i: n, at: o,
+    car: (name === "blank" || name === "") ? "" : name,
+    label: ascii(o + OFF.slotLabel, 32),
+    plate: ascii(o + OFF.slotPlate, 12)
+  };
+}
+
+function contiguous() {
+  var n = 0, total = slotCount();
+  while (n < total && readSlot(n).car) n++;
+  return n;
+}
+
+// ---------- carregar ----------
+
+function load(file) {
+  var r = new FileReader();
+  r.onload = function () {
+    var p = parse(r.result);
+    if (!p.valid) {
+      el("err").hidden = false;
+      el("err").innerHTML = "<strong>Esse arquivo não é um mc4.sav válido.</strong> " +
+        "A leitura das seções parou em 0x" + p.endedAt.toString(16).toUpperCase() +
+        " e o arquivo tem 0x" + r.result.byteLength.toString(16).toUpperCase() +
+        " bytes. Abra o mc4.sav de dentro de userdata, não o .header nem o zip.";
+      return;
+    }
+    el("err").hidden = true;
+    bytes = new Uint8Array(r.result);
+    view = new DataView(r.result);
+    secs = p;
+    fileName = file.name || "mc4.sav";
+    el("filetag").textContent = fileName + " · " + bytes.length.toLocaleString("pt-BR") + " bytes · " + p.list.length + " seções";
+    el("empty").hidden = true;
+    el("editor").hidden = false;
+    render();
+  };
+  r.readAsArrayBuffer(file);
+}
+
+// ---------- montar a tela ----------
+
+function render() {
+  var car = sec("Career"), lo = sec("LocalOptions");
+
+  el("money").value = u32(car.data + OFF.money);
+  el("rep").value = u32(car.data + OFF.rep);
+
+  el("secCount").textContent = secs.list.length + " seções";
+  var rows = "";
+  secs.list.forEach(function (s) {
+    rows += "<tr><td>" + s.name + "</td><td>0x" + s.data.toString(16).toUpperCase() +
+            "</td><td>" + s.size.toLocaleString("pt-BR") + "</td></tr>";
+  });
+  el("secBody").innerHTML = rows;
+
+  var opts = '<option value="">vazio</option>';
+  ROSTER.forEach(function (n) { opts += '<option value="' + n + '">' + n + "</option>"; });
+
+  var total = slotCount();
+  el("garCount").textContent = total + " slots";
+  var host = el("slots");
+  host.innerHTML = "";
+  for (var n = 0; n < total; n++) {
+    var s = readSlot(n);
+    var row = document.createElement("div");
+    row.className = "slot" + (s.car ? " filled" : "");
+    row.innerHTML =
+      '<span class="n">' + n + '</span>' +
+      '<select data-slot="' + n + '" aria-label="Carro do slot ' + n + '">' + opts + "</select>" +
+      '<input class="lbl" type="text" maxlength="31" data-label="' + n + '" aria-label="Rótulo do slot ' + n + '">' +
+      '<input class="plate" type="text" maxlength="7" pattern="[A-Z0-9]{7}" data-plate="' + n + '" aria-label="Placa do slot ' + n + '">';
+    host.appendChild(row);
+    row.querySelector("select").value = s.car;
+    row.querySelector("input.lbl").value = s.label;
+    row.querySelector("input.plate").value = s.plate;
+  }
+
+  host.querySelectorAll("select").forEach(function (sel) {
+    sel.addEventListener("change", function () {
+      var n = +sel.dataset.slot, o = slotAt(n);
+      var val = sel.value;
+      var lbl = sel.closest(".slot").querySelector("input");
+      if (val) {
+        writeField(o, 32, val);
+        lbl.value = autoLabel(val);
+        writeField(o + OFF.slotLabel, 33, lbl.value);
+      } else {
+        writeField(o, 32, "blank");
+        lbl.value = "";
+        writeField(o + OFF.slotLabel, 33, "");
+      }
+      sel.closest(".slot").classList.toggle("filled", !!val);
+      syncCars();
+    });
+  });
+
+  host.querySelectorAll("input.lbl").forEach(function (inp) {
+    inp.addEventListener("input", function () {
+      var n = +inp.dataset.label;
+      writeField(slotAt(n) + OFF.slotLabel, 33, inp.value.replace(/[^\x20-\x7E]/g, ""));
+      mark();
+    });
+  });
+
+  /* A placa ocupa 7 bytes exatos, com o terminador logo depois e, na sequencia,
+     um byte proprio de cada slot. Gravamos so os 7 e nao encostamos no resto. */
+  host.querySelectorAll("input.plate").forEach(function (inp) {
+    inp.addEventListener("input", function () {
+      inp.value = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
+      if (inp.value.length !== 7) return;
+      var at = slotAt(+inp.dataset.plate) + OFF.slotPlate;
+      for (var i = 0; i < 7; i++) bytes[at + i] = inp.value.charCodeAt(i);
+      mark();
+    });
+  });
+
+  renderProg();
+  renderStats();
+
+  el("money").oninput = function () {
+    setU32(car.data + OFF.money, clamp(this.value));
+    mark();
+  };
+  el("rep").oninput = function () {
+    setU32(car.data + OFF.rep, clamp(this.value));
+    mark();
+  };
+
+  reportCars();
+  el("roMoney").textContent = u32(car.data + OFF.money).toLocaleString("pt-BR");
+  el("roRep").textContent = u32(car.data + OFF.rep).toLocaleString("pt-BR");
+  el("status").textContent = "";
+  el("status").className = "status";
+}
+
+function clamp(v) {
+  var n = Math.floor(Number(v) || 0);
+  return Math.max(0, Math.min(2000000000, n));
+}
+
+/* O jogo le os slots EM SEQUENCIA a partir do 0 e so ate o contador, entao um
+   carro depois de um buraco nunca aparece. */
+
+function storedCars() { return bytes[sec("LocalOptions").data + OFF.cars]; }
+
+function paint(n) {
+  var total = slotCount(), orphan = 0;
+  for (var i = n; i < total; i++) if (readSlot(i).car) orphan++;
+  var rows = el("slots").children;
+  for (var k = 0; k < rows.length; k++) rows[k].classList.toggle("beyond", k >= n);
+  el("roCars").textContent = n;
+  return orphan;
+}
+
+/* Na abertura so relatamos. Subir o contador sozinho entregaria um carro que o
+   jogador nao pediu, entao isso fica como uma acao que ele escolhe. */
+function reportCars() {
+  var n = storedCars(), c = contiguous(), orphan = paint(n), box = el("gap");
+  if (c > n) {
+    box.hidden = false;
+    box.innerHTML = "<strong>" + (c - n) + " carro(s) gravado(s) que o jogo não mostra.</strong> " +
+      "O arquivo conta " + n + " e há " + c + " slots preenchidos em sequência. " +
+      '<button class="btn" id="fixCars" style="margin-top:11px">Contar os ' + c + "</button>";
+    el("fixCars").onclick = syncCars;
+  } else if (orphan) {
+    box.hidden = false;
+    box.innerHTML = "<strong>" + orphan + " carro(s) fora de alcance.</strong> " +
+      "O jogo para no slot " + n + ". Preencha os vazios antes deles ou mova os carros para cima.";
+  } else {
+    box.hidden = true;
+  }
+}
+
+function syncCars() {
+  var lo = sec("LocalOptions"), n = contiguous();
+  bytes[lo.data + OFF.cars] = n;
+  bytes[lo.data + OFF.carsIdx] = n > 0 ? n - 1 : 0;
+  reportCars();
+  mark();
+}
+
+function mark() {
+  el("roMoney").textContent = Number(el("money").value || 0).toLocaleString("pt-BR");
+  el("roRep").textContent = Number(el("rep").value || 0).toLocaleString("pt-BR");
+  el("status").textContent = "alterações não salvas";
+  el("status").className = "status";
+}
+
+// ---------- progressao ----------
+
+/* 43 blocos de 65 bytes em Career+0x2E9. O ultimo byte de cada bloco e o flag
+   de concluido. Marcar todos nao libera grupo na loja: isso foi testado em
+   jogo e nao e o que destrava a compra. */
+
+function progBase() { return sec("Career").data + OFF.progBase; }
+function progTotal() { return u32(sec("Career").data + OFF.progCount); }
+function progAt(i) { return progBase() + i * OFF.progStride + 64; }
+
+function progTally() {
+  var n = progTotal(), done = 0;
+  for (var i = 0; i < n; i++) if (bytes[progAt(i)]) done++;
+  el("progCount").textContent = done + " de " + n;
+}
+
+function progPaint() {
+  el("prog").querySelectorAll(".cell").forEach(function (b) {
+    b.setAttribute("aria-pressed", bytes[progAt(+b.dataset.prog)] ? "true" : "false");
+  });
+  progTally();
+}
+
+function progSet(v) {
+  var n = progTotal();
+  for (var i = 0; i < n; i++) bytes[progAt(i)] = v;
+  progPaint();
+  mark();
+}
+
+function renderProg() {
+  var n = progTotal(), host = el("prog");
+  host.innerHTML = "";
+  for (var i = 0; i < n; i++) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "cell";
+    b.textContent = i;
+    b.dataset.prog = i;
+    b.setAttribute("aria-label", "Progressão " + i);
+    host.appendChild(b);
+  }
+  host.onclick = function (e) {
+    var b = e.target.closest(".cell");
+    if (!b) return;
+    var at = progAt(+b.dataset.prog);
+    bytes[at] = bytes[at] ? 0 : 1;
+    b.setAttribute("aria-pressed", bytes[at] ? "true" : "false");
+    progTally();
+    mark();
+  };
+  el("progAll").onclick = function () { progSet(1); };
+  el("progNone").onclick = function () { progSet(0); };
+  progPaint();
+}
+
+// ---------- estatisticas ----------
+
+/* Registro de 16 bytes na secao Stats, fourcc em offset absoluto % 16 == 2:
+   fourcc[4] | u32 id @+4 | u8 tipo @+8 | u24 @+9 | valor @+12.
+   Tipo 0x28 e 0x00 guardam float, o resto inteiro. */
+
+var STATS = [];
+
+function renderStats() {
+  var s = sec("Stats");
+  STATS = [];
+  var start = s.data + (((2 - (s.data % 16)) % 16) + 16) % 16;
+  for (var o = start; o + 16 <= s.data + s.size; o += 16) {
+    var k = ascii(o, 4);
+    if (!/^[A-Za-z][A-Za-z0-9]{3}$/.test(k)) continue;
+    var t = bytes[o + 8];
+    STATS.push({ at: o, key: k, isFloat: t === 0x28 || t === 0x00 });
+  }
+  el("statCount").textContent = STATS.length + " registros";
+  el("statFilter").oninput = function () { drawStats(this.value); };
+  drawStats(el("statFilter").value);
+}
+
+function drawStats(q) {
+  q = (q || "").trim().toLowerCase();
+  var host = el("stats");
+  host.innerHTML = "";
+  var shown = 0;
+  STATS.forEach(function (r) {
+    if (q && r.key.toLowerCase().indexOf(q) === -1) return;
+    shown++;
+    var row = document.createElement("div");
+    row.className = "stat";
+    row.innerHTML = '<span class="key">' + r.key + "</span>" +
+                    '<span class="kind">' + (r.isFloat ? "decimal" : "inteiro") + "</span>" +
+                    '<input type="text" inputmode="decimal" aria-label="Valor de ' + r.key + '">';
+    var inp = row.querySelector("input");
+    inp.value = r.isFloat ? view.getFloat32(r.at + 12).toFixed(4) : u32(r.at + 12);
+    inp.addEventListener("input", function () {
+      var v = Number(inp.value.replace(",", "."));
+      if (inp.value.trim() === "" || !isFinite(v)) return;
+      if (r.isFloat) view.setFloat32(r.at + 12, v);
+      else setU32(r.at + 12, Math.max(0, Math.min(4294967295, Math.floor(v))));
+      mark();
+    });
+    host.appendChild(row);
+  });
+  if (!shown) host.innerHTML = '<p class="empty-note">Nenhum stat com esse código.</p>';
+}
+
+// ---------- gravar ----------
+
+el("save").addEventListener("click", function () {
+  var check = parse(bytes.buffer);
+  if (!check.valid) {
+    el("status").textContent = "a edição quebraria a estrutura, nada foi gravado";
+    el("status").className = "status bad";
+    return;
+  }
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
+  a.download = "mc4.sav";
+  a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  el("status").textContent = "baixado, " + bytes.length.toLocaleString("pt-BR") + " bytes";
+  el("status").className = "status good";
+});
+
+// ---------- entrada do arquivo ----------
+
+el("pick").addEventListener("click", function () { el("file").click(); });
+el("file").addEventListener("change", function (e) { if (e.target.files[0]) load(e.target.files[0]); });
+
+var dz = el("drop");
+["dragenter", "dragover"].forEach(function (ev) {
+  dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.add("hot"); });
+});
+["dragleave", "drop"].forEach(function (ev) {
+  dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.remove("hot"); });
+});
+dz.addEventListener("drop", function (e) {
+  var f = e.dataTransfer.files[0];
+  if (f) load(f);
+});
+</script>
+</body>
+</html>
