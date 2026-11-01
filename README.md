@@ -32,10 +32,9 @@ validate, and neither one ever changes the file size.
 
 ## Tools
 
-| | |
-|---|---|
-| `scripts/mcla-save-editor.html` | Standalone page. Open it in a browser, drop the save in, edit, download. No install, nothing leaves the machine. |
-| `scripts/mcla-save-editor.ps1` | PowerShell CLI: `info`, `garage`, `roster`, `cars`, `setcar`, `money`, `rep`, `progress`, `stats`, `find`, `get`, `set`, `diff`, `selftest`. |
+**[Open the editor](https://onlyzennnn.github.io/mcla-save-editor/)** — drop the save in, edit, download the patched file. It runs entirely in the browser; the save never leaves your machine. `index.html` is the whole thing, so downloading that one file and opening it offline works the same way.
+
+For the command line, `scripts/mcla-save-editor.ps1` covers `info`, `garage`, `roster`, `cars`, `setcar`, `money`, `rep`, `progress`, `stats`, `find`, `get`, `set`, `diff` and `selftest`.
 
 The UI text in both is Brazilian Portuguese.
 
