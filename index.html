@@ -100,10 +100,18 @@ input { caret-color: var(--signal); }
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.btn.lang {
+  flex: none;
+  padding: 5px 11px;
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  margin-left: 14px;
+}
 @media (max-width: 580px) {
   .masthead { flex-wrap: wrap; row-gap: 8px; }
   .masthead h1 { font-size: 23px; }
-  .filetag { flex-basis: 100%; margin-left: 0; text-align: left; }
+  .filetag { order: 3; flex-basis: 100%; margin-left: 0; text-align: left; }
+  .btn.lang { margin-left: auto; }
 }
 
 /* ---------- estado vazio ---------- */
@@ -450,8 +458,9 @@ input::placeholder { color: var(--ink-faint); }
       <path d="M12 2.6 20.5 7.3v9.4L12 21.4 3.5 16.7V7.3Z"/>
       <path d="M12 8.1 15.8 10.2v4.2L12 16.5 8.2 14.4v-4.2Z"/>
     </svg>
-    <h1>Editor de Save</h1>
-    <div class="filetag" id="filetag">nenhum arquivo aberto</div>
+    <h1 data-i18n="app">Editor de Save</h1>
+    <div class="filetag" id="filetag" data-i18n="noFile">nenhum arquivo aberto</div>
+    <button class="btn lang" id="lang" type="button" title="Português / English">EN</button>
   </div>
 
   <section id="empty">
@@ -459,10 +468,10 @@ input::placeholder { color: var(--ink-faint); }
       <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--edge-bright)" aria-hidden="true">
         <path d="M12 16V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M4 16v3.2A1.8 1.8 0 0 0 5.8 21h12.4a1.8 1.8 0 0 0 1.8-1.8V16"/>
       </svg>
-      <h2>Arraste o mc4.sav aqui</h2>
-      <p>Tudo acontece no seu navegador. O arquivo não sai da sua máquina, e o editor devolve um save do mesmo tamanho do original.</p>
+      <h2 data-i18n="dropTitle">Arraste o mc4.sav aqui</h2>
+      <p data-i18n="dropBody">Tudo acontece no seu navegador. O arquivo não sai da sua máquina, e o editor devolve um save do mesmo tamanho do original.</p>
       <span class="path">userdata\B13EBABEBABEBABE\545407F8\00000001\mc4.sav\mc4.sav</span>
-      <div style="margin-top:20px"><button class="btn" id="pick">Escolher arquivo</button></div>
+      <div style="margin-top:20px"><button class="btn" id="pick" data-i18n="pick">Escolher arquivo</button></div>
       <input type="file" id="file" hidden>
     </div>
     <div class="notice" id="err" hidden></div>
@@ -473,35 +482,35 @@ input::placeholder { color: var(--ink-faint); }
 
       <div style="display:grid;gap:18px;min-width:0">
         <div class="panel">
-          <header>Carteira</header>
+          <header data-i18n="wallet">Carteira</header>
           <div class="body">
             <div class="field">
-              <label for="money">Dinheiro <span class="at">Career+0x2D9</span></label>
+              <label for="money"><span data-i18n="money">Dinheiro</span> <span class="at">Career+0x2D9</span></label>
               <input type="number" id="money" min="0" max="2000000000" step="1">
             </div>
             <div class="field">
-              <label for="rep">Reputação <span class="at">Career+0x2E1</span></label>
+              <label for="rep"><span data-i18n="rep">Reputação</span> <span class="at">Career+0x2E1</span></label>
               <input type="number" id="rep" min="0" max="2000000000" step="1">
             </div>
           </div>
         </div>
 
         <div class="panel">
-          <header>Progressão <span class="count" id="progCount"></span></header>
+          <header><span data-i18n="progression">Progressão</span> <span class="count" id="progCount"></span></header>
           <div class="body">
             <div class="prog" id="prog"></div>
             <div class="bulk">
-              <button class="btn" id="progAll">Marcar todas</button>
-              <button class="btn" id="progNone">Limpar todas</button>
+              <button class="btn" id="progAll" data-i18n="markAll">Marcar todas</button>
+              <button class="btn" id="progNone" data-i18n="clearAll">Limpar todas</button>
             </div>
           </div>
         </div>
 
         <div class="panel">
-          <header>Seções <span class="count" id="secCount"></span></header>
+          <header><span data-i18n="sections">Seções</span> <span class="count" id="secCount"></span></header>
           <div class="body">
             <table class="sections">
-              <thead><tr><th>Nome</th><th>Início</th><th>Bytes</th></tr></thead>
+              <thead><tr><th data-i18n="thName">Nome</th><th data-i18n="thStart">Início</th><th>Bytes</th></tr></thead>
               <tbody id="secBody"></tbody>
             </table>
           </div>
@@ -510,14 +519,14 @@ input::placeholder { color: var(--ink-faint); }
 
       <div style="display:grid;gap:18px;min-width:0">
         <div class="panel">
-          <header>Garagem <span class="count" id="garCount"></span></header>
+          <header><span data-i18n="garage">Garagem</span> <span class="count" id="garCount"></span></header>
           <div class="slots" id="slots"></div>
         </div>
 
         <div class="panel">
-          <header>Estatísticas <span class="count" id="statCount"></span></header>
+          <header><span data-i18n="stats">Estatísticas</span> <span class="count" id="statCount"></span></header>
           <div class="body">
-            <input class="filter" type="text" id="statFilter" placeholder="filtrar por código, ex: gWIN">
+            <input class="filter" type="text" id="statFilter" data-i18n-ph="statFilter" placeholder="filtrar por código, ex: gWIN">
             <div class="statlist" id="stats"></div>
           </div>
         </div>
@@ -527,12 +536,12 @@ input::placeholder { color: var(--ink-faint); }
 
     <div class="actionbar">
       <div class="readout">
-        <span>CARROS <b id="roCars">0</b></span>
-        <span>DINHEIRO <b id="roMoney">0</b></span>
-        <span>REP <b id="roRep">0</b></span>
+        <span><span data-i18n="roCars">CARROS</span> <b id="roCars">0</b></span>
+        <span><span data-i18n="roMoney">DINHEIRO</span> <b id="roMoney">0</b></span>
+        <span><span data-i18n="roRep">REP</span> <b id="roRep">0</b></span>
       </div>
       <span class="status" id="status"></span>
-      <button class="btn primary" id="save">Baixar mc4.sav</button>
+      <button class="btn primary" id="save" data-i18n="download">Baixar mc4.sav</button>
     </div>
     <div class="notice" id="gap" hidden></div>
   </section>
@@ -546,6 +555,70 @@ input::placeholder { color: var(--ink-faint); }
    header: u32 capacidade | u32 numSecoes
    secao : u32 nameLen | name | u8 flag | u32 size | data[size]   (repete)
    Inteiros big-endian: o jogo e PowerPC. Nao ha checksum, o walk fecha no EOF. */
+
+/* Dois idiomas no mesmo arquivo. A ferramenta nasceu em portugues e o formato
+   que ela documenta interessa a quem nao fala, entao trocar e um clique. */
+
+var LANG = "pt";
+
+var STR = {
+  pt: {
+    app: "Editor de Save", noFile: "nenhum arquivo aberto",
+    dropTitle: "Arraste o mc4.sav aqui",
+    dropBody: "Tudo acontece no seu navegador. O arquivo não sai da sua máquina, e o editor devolve um save do mesmo tamanho do original.",
+    pick: "Escolher arquivo", wallet: "Carteira", money: "Dinheiro", rep: "Reputação",
+    progression: "Progressão", markAll: "Marcar todas", clearAll: "Limpar todas",
+    sections: "Seções", thName: "Nome", thStart: "Início",
+    garage: "Garagem", stats: "Estatísticas", statFilter: "filtrar por código, ex: gWIN",
+    roCars: "CARROS", roMoney: "DINHEIRO", roRep: "REP", download: "Baixar mc4.sav",
+    nSections: "seções", nSlots: "slots", nRecords: "registros", of: "de",
+    empty: "vazio", integer: "inteiro", decimal: "decimal",
+    noStat: "Nenhum stat com esse código.",
+    unsaved: "alterações não salvas", downloaded: "baixado",
+    wouldBreak: "a edição quebraria a estrutura, nada foi gravado",
+    badFileTitle: "Esse arquivo não é um mc4.sav válido.",
+    badFileBody: "A leitura das seções parou em 0x{0} e o arquivo tem 0x{1} bytes. Abra o mc4.sav de dentro de userdata, não o .header nem o zip.",
+    hiddenTitle: "{0} carro(s) gravado(s) que o jogo não mostra.",
+    hiddenBody: "O arquivo conta {0} e há {1} slots preenchidos em sequência.",
+    countThem: "Contar os {0}",
+    orphanTitle: "{0} carro(s) fora de alcance.",
+    orphanBody: "O jogo para no slot {0}. Preencha os vazios antes deles ou mova os carros para cima.",
+    aCar: "Carro do slot {0}", aLabel: "Rótulo do slot {0}", aPlate: "Placa do slot {0}",
+    aProg: "Progressão {0}", aValue: "Valor de {0}"
+  },
+  en: {
+    app: "Save Editor", noFile: "no file open",
+    dropTitle: "Drop mc4.sav here",
+    dropBody: "Everything runs in your browser. The file never leaves your machine, and the editor hands back a save the same size as the original.",
+    pick: "Choose file", wallet: "Wallet", money: "Money", rep: "Reputation",
+    progression: "Progression", markAll: "Mark all", clearAll: "Clear all",
+    sections: "Sections", thName: "Name", thStart: "Start",
+    garage: "Garage", stats: "Statistics", statFilter: "filter by code, e.g. gWIN",
+    roCars: "CARS", roMoney: "MONEY", roRep: "REP", download: "Download mc4.sav",
+    nSections: "sections", nSlots: "slots", nRecords: "records", of: "of",
+    empty: "empty", integer: "integer", decimal: "decimal",
+    noStat: "No stat matches that code.",
+    unsaved: "unsaved changes", downloaded: "downloaded",
+    wouldBreak: "this edit would break the structure, nothing was written",
+    badFileTitle: "That file is not a valid mc4.sav.",
+    badFileBody: "The section walk stopped at 0x{0} and the file is 0x{1} bytes. Open the mc4.sav inside userdata, not the .header and not the zip.",
+    hiddenTitle: "{0} car(s) written but invisible in game.",
+    hiddenBody: "The file counts {0} and {1} slots are filled in sequence.",
+    countThem: "Count all {0}",
+    orphanTitle: "{0} car(s) out of reach.",
+    orphanBody: "The game stops at slot {0}. Fill the empty slots before them, or move the cars up.",
+    aCar: "Car in slot {0}", aLabel: "Label for slot {0}", aPlate: "Plate for slot {0}",
+    aProg: "Progression {0}", aValue: "Value of {0}"
+  }
+};
+
+function t(k) {
+  var s = (STR[LANG] && STR[LANG][k]) || STR.pt[k] || k;
+  for (var i = 1; i < arguments.length; i++) s = s.replace("{" + (i - 1) + "}", arguments[i]);
+  return s;
+}
+
+function nf(n) { return Number(n).toLocaleString(LANG === "pt" ? "pt-BR" : "en-US"); }
 
 var OFF = {
   money: 0x2D9,      // Career
@@ -665,10 +738,8 @@ function load(file) {
     var p = parse(r.result);
     if (!p.valid) {
       el("err").hidden = false;
-      el("err").innerHTML = "<strong>Esse arquivo não é um mc4.sav válido.</strong> " +
-        "A leitura das seções parou em 0x" + p.endedAt.toString(16).toUpperCase() +
-        " e o arquivo tem 0x" + r.result.byteLength.toString(16).toUpperCase() +
-        " bytes. Abra o mc4.sav de dentro de userdata, não o .header nem o zip.";
+      el("err").innerHTML = "<strong>" + t("badFileTitle") + "</strong> " +
+        t("badFileBody", p.endedAt.toString(16).toUpperCase(), r.result.byteLength.toString(16).toUpperCase());
       return;
     }
     el("err").hidden = true;
@@ -676,7 +747,7 @@ function load(file) {
     view = new DataView(r.result);
     secs = p;
     fileName = file.name || "mc4.sav";
-    el("filetag").textContent = fileName + " · " + bytes.length.toLocaleString("pt-BR") + " bytes · " + p.list.length + " seções";
+    setFileTag();
     el("empty").hidden = true;
     el("editor").hidden = false;
     render();
@@ -692,7 +763,7 @@ function render() {
   el("money").value = u32(car.data + OFF.money);
   el("rep").value = u32(car.data + OFF.rep);
 
-  el("secCount").textContent = secs.list.length + " seções";
+  el("secCount").textContent = secs.list.length + " " + t("nSections");
   var rows = "";
   secs.list.forEach(function (s) {
     rows += "<tr><td>" + s.name + "</td><td>0x" + s.data.toString(16).toUpperCase() +
@@ -700,11 +771,11 @@ function render() {
   });
   el("secBody").innerHTML = rows;
 
-  var opts = '<option value="">vazio</option>';
+  var opts = '<option value="">' + t("empty") + "</option>";
   ROSTER.forEach(function (n) { opts += '<option value="' + n + '">' + n + "</option>"; });
 
   var total = slotCount();
-  el("garCount").textContent = total + " slots";
+  el("garCount").textContent = total + " " + t("nSlots");
   var host = el("slots");
   host.innerHTML = "";
   for (var n = 0; n < total; n++) {
@@ -713,9 +784,9 @@ function render() {
     row.className = "slot" + (s.car ? " filled" : "");
     row.innerHTML =
       '<span class="n">' + n + '</span>' +
-      '<select data-slot="' + n + '" aria-label="Carro do slot ' + n + '">' + opts + "</select>" +
-      '<input class="lbl" type="text" maxlength="31" data-label="' + n + '" aria-label="Rótulo do slot ' + n + '">' +
-      '<input class="plate" type="text" maxlength="7" pattern="[A-Z0-9]{7}" data-plate="' + n + '" aria-label="Placa do slot ' + n + '">';
+      '<select data-slot="' + n + '" aria-label="' + t("aCar", n) + '">' + opts + "</select>" +
+      '<input class="lbl" type="text" maxlength="31" data-label="' + n + '" aria-label="' + t("aLabel", n) + '">' +
+      '<input class="plate" type="text" maxlength="7" pattern="[A-Z0-9]{7}" data-plate="' + n + '" aria-label="' + t("aPlate", n) + '">';
     host.appendChild(row);
     row.querySelector("select").value = s.car;
     row.querySelector("input.lbl").value = s.label;
@@ -774,8 +845,8 @@ function render() {
   };
 
   reportCars();
-  el("roMoney").textContent = u32(car.data + OFF.money).toLocaleString("pt-BR");
-  el("roRep").textContent = u32(car.data + OFF.rep).toLocaleString("pt-BR");
+  el("roMoney").textContent = nf(u32(car.data + OFF.money));
+  el("roRep").textContent = nf(u32(car.data + OFF.rep));
   el("status").textContent = "";
   el("status").className = "status";
 }
@@ -805,14 +876,12 @@ function reportCars() {
   var n = storedCars(), c = contiguous(), orphan = paint(n), box = el("gap");
   if (c > n) {
     box.hidden = false;
-    box.innerHTML = "<strong>" + (c - n) + " carro(s) gravado(s) que o jogo não mostra.</strong> " +
-      "O arquivo conta " + n + " e há " + c + " slots preenchidos em sequência. " +
-      '<button class="btn" id="fixCars" style="margin-top:11px">Contar os ' + c + "</button>";
+    box.innerHTML = "<strong>" + t("hiddenTitle", c - n) + "</strong> " + t("hiddenBody", n, c) + " " +
+      '<button class="btn" id="fixCars" style="margin-top:11px">' + t("countThem", c) + "</button>";
     el("fixCars").onclick = syncCars;
   } else if (orphan) {
     box.hidden = false;
-    box.innerHTML = "<strong>" + orphan + " carro(s) fora de alcance.</strong> " +
-      "O jogo para no slot " + n + ". Preencha os vazios antes deles ou mova os carros para cima.";
+    box.innerHTML = "<strong>" + t("orphanTitle", orphan) + "</strong> " + t("orphanBody", n);
   } else {
     box.hidden = true;
   }
@@ -827,10 +896,31 @@ function syncCars() {
 }
 
 function mark() {
-  el("roMoney").textContent = Number(el("money").value || 0).toLocaleString("pt-BR");
-  el("roRep").textContent = Number(el("rep").value || 0).toLocaleString("pt-BR");
-  el("status").textContent = "alterações não salvas";
+  el("roMoney").textContent = nf(el("money").value || 0);
+  el("roRep").textContent = nf(el("rep").value || 0);
+  el("status").textContent = t("unsaved");
   el("status").className = "status";
+}
+
+function setFileTag() {
+  el("filetag").textContent = bytes
+    ? fileName + " · " + nf(bytes.length) + " bytes · " + secs.list.length + " " + t("nSections")
+    : t("noFile");
+}
+
+/* Troca de idioma sem recarregar: reescreve os textos marcados e, com um save
+   aberto, remonta os paineis para pegar tambem o que e gerado em JS. */
+function applyLang() {
+  document.documentElement.lang = LANG === "pt" ? "pt-BR" : "en";
+  document.querySelectorAll("[data-i18n]").forEach(function (e) {
+    e.textContent = t(e.getAttribute("data-i18n"));
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach(function (e) {
+    e.placeholder = t(e.getAttribute("data-i18n-ph"));
+  });
+  el("lang").textContent = LANG === "pt" ? "EN" : "PT";
+  if (bytes) render();
+  setFileTag();
 }
 
 // ---------- progressao ----------
@@ -846,7 +936,7 @@ function progAt(i) { return progBase() + i * OFF.progStride + 64; }
 function progTally() {
   var n = progTotal(), done = 0;
   for (var i = 0; i < n; i++) if (bytes[progAt(i)]) done++;
-  el("progCount").textContent = done + " de " + n;
+  el("progCount").textContent = done + " " + t("of") + " " + n;
 }
 
 function progPaint() {
@@ -872,7 +962,7 @@ function renderProg() {
     b.className = "cell";
     b.textContent = i;
     b.dataset.prog = i;
-    b.setAttribute("aria-label", "Progressão " + i);
+    b.setAttribute("aria-label", t("aProg", i));
     host.appendChild(b);
   }
   host.onclick = function (e) {
@@ -907,7 +997,7 @@ function renderStats() {
     var t = bytes[o + 8];
     STATS.push({ at: o, key: k, isFloat: t === 0x28 || t === 0x00 });
   }
-  el("statCount").textContent = STATS.length + " registros";
+  el("statCount").textContent = STATS.length + " " + t("nRecords");
   el("statFilter").oninput = function () { drawStats(this.value); };
   drawStats(el("statFilter").value);
 }
@@ -923,8 +1013,8 @@ function drawStats(q) {
     var row = document.createElement("div");
     row.className = "stat";
     row.innerHTML = '<span class="key">' + r.key + "</span>" +
-                    '<span class="kind">' + (r.isFloat ? "decimal" : "inteiro") + "</span>" +
-                    '<input type="text" inputmode="decimal" aria-label="Valor de ' + r.key + '">';
+                    '<span class="kind">' + t(r.isFloat ? "decimal" : "integer") + "</span>" +
+                    '<input type="text" inputmode="decimal" aria-label="' + t("aValue", r.key) + '">';
     var inp = row.querySelector("input");
     inp.value = r.isFloat ? view.getFloat32(r.at + 12).toFixed(4) : u32(r.at + 12);
     inp.addEventListener("input", function () {
@@ -936,7 +1026,7 @@ function drawStats(q) {
     });
     host.appendChild(row);
   });
-  if (!shown) host.innerHTML = '<p class="empty-note">Nenhum stat com esse código.</p>';
+  if (!shown) host.innerHTML = '<p class="empty-note">' + t("noStat") + "</p>";
 }
 
 // ---------- gravar ----------
@@ -944,7 +1034,7 @@ function drawStats(q) {
 el("save").addEventListener("click", function () {
   var check = parse(bytes.buffer);
   if (!check.valid) {
-    el("status").textContent = "a edição quebraria a estrutura, nada foi gravado";
+    el("status").textContent = t("wouldBreak");
     el("status").className = "status bad";
     return;
   }
@@ -953,7 +1043,7 @@ el("save").addEventListener("click", function () {
   a.download = "mc4.sav";
   a.click();
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
-  el("status").textContent = "baixado, " + bytes.length.toLocaleString("pt-BR") + " bytes";
+  el("status").textContent = t("downloaded") + ", " + nf(bytes.length) + " bytes";
   el("status").className = "status good";
 });
 
@@ -973,6 +1063,26 @@ dz.addEventListener("drop", function (e) {
   var f = e.dataTransfer.files[0];
   if (f) load(f);
 });
+
+// ---------- idioma ----------
+
+el("lang").addEventListener("click", function () {
+  LANG = LANG === "pt" ? "en" : "pt";
+  try { localStorage.setItem("mcla.lang", LANG); } catch (err) {}
+  applyLang();
+});
+
+/* Escolha guardada primeiro; sem ela, o idioma do navegador. */
+function pickLang() {
+  try {
+    var saved = localStorage.getItem("mcla.lang");
+    if (saved === "pt" || saved === "en") return saved;
+  } catch (err) {}
+  return (navigator.language || "").toLowerCase().indexOf("pt") === 0 ? "pt" : "en";
+}
+
+LANG = pickLang();
+applyLang();
 </script>
 </body>
 </html>

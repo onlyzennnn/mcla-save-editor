@@ -1,5 +1,7 @@
 # mc4.sav
 
+**English** · [Português](README.pt-BR.md)
+
 Save editor and format documentation for **Midnight Club: Los Angeles** (Xbox 360, Complete Edition),
 as written by the [MC_LA_Recompiled](https://github.com/robertoaraujo77/MC_LA_Recompiled) PC runtime.
 
@@ -158,8 +160,10 @@ Spending time here again is not necessary.
 - **Progression flags do not gate them either.** All 43 marked complete changed nothing.
 - **The Audi R8 lock is not in the save.** It lives in `tune/vehicle/0xe94bde63` inside
   `xarchive_cache.rpf`, as Social Club lines on the R8's `Vehicle` block. Writing `vp_aud_r8_08`
-  into a garage slot does nothing until that game file is modded; see the Reddit guide in the
-  credits. Even then the car's `UnlockingGroup A0` still requires group 4 for the showroom.
+  into a garage slot does nothing until that game file is modded. Two r/midnightclub threads carry
+  that mod: the [original guide](https://www.reddit.com/r/midnightclub/comments/17hht3b/guide_unlocking_the_audi_r8_for_purchase_in_mcla/)
+  and a [later purchasable-R8 post](https://www.reddit.com/r/midnightclub/comments/1i0crmk/midnight_club_la_purchasable_audi_r8_xbox_360_mod/).
+  Even with the mod the car's `UnlockingGroup A0` still requires group 4 for the showroom.
 - **Wheels cannot be fixed from the save.** A purchased slot and a hand-written slot are
   byte-identical outside name, label, plate and id, so a car injected into the garage renders with
   whatever the game resolves by default.
