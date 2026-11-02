@@ -49,6 +49,33 @@ desempenho só existe no editor do navegador.
 O `tests/render.test.js` roda o script de dentro da página contra um save sintético num DOM mínimo
 e exige que cada campo realmente chegue nos bytes. Passando um caminho, roda no seu `mc4.sav`.
 
+### Liberar carros, como mod
+
+Dezoito dos 48 veículos ficam travados acima da própria classe: o Audi R8 é um carro `B0` com
+`UnlockingGroup A0`, então ele nunca chega à loja antes da classe A. Essa trava é dado do jogo, não
+do save — mora no `tune/vehicle/vehicle.lst`, que o arquivo guarda com o nome `0xe94bde63` porque o
+RPF3 indexa por hash Jenkins one-at-a-time, e `joaat("vehicle.lst")` dá exatamente `0xE94BDE63`.
+
+O `scripts/mcla-mod-unlock.ps1` lê a **sua** cópia desse arquivo e escreve uma pasta de mod para o
+mod loader do [LARecomp](https://github.com/mzzvxm/LARecomp):
+
+```powershell
+.\scripts\mcla-mod-unlock.ps1 list  -Lst <seu vehicle.lst>
+.\scripts\mcla-mod-unlock.ps1 build -Lst <seu vehicle.lst> -Out .\mods -Cars vp_aud_r8_08
+```
+
+Ele muda apenas as linhas de `UnlockingGroup`, deixa o resto do arquivo byte a byte, e reparseia o
+resultado antes de gravar. Nada do jogo é distribuído junto com este repositório.
+
+O mod loader empacota a pasta em `xarchive_mods.rpf` e monta por último, então ele vence arquivo
+por arquivo e tudo que não estiver nele continua vindo dos arquivos originais. É essa a diferença
+em relação a trocar o `xarchive_cache.rpf` inteiro, que é o que os guias do Reddit fazem: a troca
+substitui também os textos localizados, e é por isso que aquele caminho custa a tradução.
+
+**Isso exige uma build com mod loader.** O `MC_LA_Recompiled` não tem — os binários dele não contêm
+as strings `modloader`, `xarchive_mods`, `textures_replace` nem `rims`. O LARecomp tem o loader mas
+não publica release, então você compila.
+
 ## Formato
 
 Os inteiros são **big-endian** em todo o arquivo: o jogo é PowerPC. Não existe checksum em lugar

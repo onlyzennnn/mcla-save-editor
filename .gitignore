@@ -8,6 +8,14 @@
 nxeart
 0x*
 $SystemUpdate/
+*.lst
+*.xrsc
+*.xtp
+
+# Mods montados a partir dos arquivos do jogo: a saida carrega dado da Rockstar
+modloader/
+mods/
+models/
 
 # Saves pessoais, em qualquer forma
 *.sav

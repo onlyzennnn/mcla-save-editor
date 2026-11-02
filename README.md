@@ -49,6 +49,34 @@ performance feature is in the browser editor only.
 `tests/render.test.js` runs the page's own script against a synthetic save in a minimal DOM and
 checks that every field actually reaches the bytes. Pass a path to run it against a real `mc4.sav`.
 
+### Unlocking cars, as a mod
+
+Eighteen of the 48 vehicles are gated above their own class: the Audi R8 is a `B0` car with
+`UnlockingGroup A0`, so it never reaches the showroom until A class. That gate is game data, not
+save data — it lives in `tune/vehicle/vehicle.lst`, which the archive stores under the name
+`0xe94bde63` because RPF3 keys entries by Jenkins one-at-a-time hash and `joaat("vehicle.lst")` is
+`0xE94BDE63`.
+
+`scripts/mcla-mod-unlock.ps1` reads **your** copy of that file and writes a mod folder for
+[LARecomp](https://github.com/mzzvxm/LARecomp)'s mod loader:
+
+```powershell
+.\scripts\mcla-mod-unlock.ps1 list  -Lst <your vehicle.lst>
+.\scripts\mcla-mod-unlock.ps1 build -Lst <your vehicle.lst> -Out .\mods -Cars vp_aud_r8_08
+```
+
+It changes only the `UnlockingGroup` lines, leaves the rest of the file byte for byte, and
+re-parses the result before writing. Nothing from the game ships with this repository.
+
+The mod loader packs the folder into `xarchive_mods.rpf` and mounts it last, so it wins per file
+and everything it does not contain still comes from the shipped archives. That is the difference
+from swapping `xarchive_cache.rpf` wholesale, which is what the Reddit guides do: the swap also
+replaces the localized strings, which is why that route costs you the translation.
+
+**This needs a build with a mod loader.** `MC_LA_Recompiled` does not have one — its binaries
+contain no `modloader`, `xarchive_mods`, `textures_replace` or `rims` strings. LARecomp has the
+loader but ships no release, so you compile it yourself.
+
 ## Format
 
 Integers are **big-endian** throughout: the game is PowerPC. There is no checksum anywhere in
