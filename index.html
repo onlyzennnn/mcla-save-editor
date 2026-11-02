@@ -1006,8 +1006,10 @@ function renderStats() {
   for (var o = start; o + 16 <= s.data + s.size; o += 16) {
     var k = ascii(o, 4);
     if (!/^[A-Za-z][A-Za-z0-9]{3}$/.test(k)) continue;
-    var t = bytes[o + 8];
-    STATS.push({ at: o, key: k, isFloat: t === 0x28 || t === 0x00 });
+    /* Nao chamar isto de `t`: `var` e de escopo de funcao e sombrearia o t() de
+       traducao no corpo inteiro, derrubando render() antes de ligar os campos. */
+    var kind = bytes[o + 8];
+    STATS.push({ at: o, key: k, isFloat: kind === 0x28 || kind === 0x00 });
   }
   el("statCount").textContent = STATS.length + " " + t("nRecords");
   el("statFilter").oninput = function () { drawStats(this.value); };
