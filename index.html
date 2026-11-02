@@ -294,7 +294,7 @@ input::placeholder { color: var(--ink-faint); }
 .slots { display: flex; flex-direction: column; }
 .slot {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) 118px 92px;
+  grid-template-columns: 30px minmax(0, 1fr) 118px 92px 64px;
   align-items: center;
   gap: 10px;
   padding: 7px 15px 7px 0;
@@ -399,10 +399,21 @@ input::placeholder { color: var(--ink-faint); }
 .stat input { padding: 5px 9px; font-size: 12.5px; text-align: right; }
 .empty-note { color: var(--ink-faint); font-size: 13px; padding: 10px 0; }
 .slot.beyond { opacity: 0.42; }
+.btn.mini {
+  padding: 5px 9px;
+  font-size: 11px;
+  gap: 4px;
+  font-family: var(--data);
+  font-variant-numeric: tabular-nums;
+}
+.slot .tune { justify-content: center; color: var(--ink-dim); }
+.slot .tune[data-full] { color: var(--signal); border-color: var(--signal); }
+.panel > header .btn.mini { margin-left: auto; letter-spacing: 0.05em; }
 @media (max-width: 620px) {
   .slot { grid-template-columns: 26px minmax(0, 1fr); row-gap: 6px; }
   .slot .plate { grid-column: 2; text-align: left; }
   .slot input.lbl { grid-column: 2; }
+  .slot .tune { grid-column: 2; justify-self: start; }
 }
 
 /* ---------- barra de acao ---------- */
@@ -531,7 +542,8 @@ input::placeholder { color: var(--ink-faint); }
 
       <div style="display:grid;gap:18px;min-width:0">
         <div class="panel">
-          <header><span data-i18n="garage">Garagem</span> <span class="count" id="garCount"></span></header>
+          <header><span data-i18n="garage">Garagem</span> <span class="count" id="garCount"></span>
+            <button class="btn mini" id="maxAll" type="button" data-i18n="maxAll">Tunar todos</button></header>
           <div class="slots" id="slots"></div>
         </div>
 
@@ -596,6 +608,7 @@ var STR = {
     orphanTitle: "{0} carro(s) fora de alcance.",
     orphanBody: "O jogo para no slot {0}. Preencha os vazios antes deles ou mova os carros para cima.",
     aCar: "Carro do slot {0}", aLabel: "Rótulo do slot {0}", aPlate: "Placa do slot {0}",
+    maxAll: "Tunar todos", aTune: "Maximizar o desempenho do carro do slot {0}",
     aProg: "Progressão {0}", aValue: "Valor de {0}"
   },
   en: {
@@ -620,6 +633,7 @@ var STR = {
     orphanTitle: "{0} car(s) out of reach.",
     orphanBody: "The game stops at slot {0}. Fill the empty slots before them, or move the cars up.",
     aCar: "Car in slot {0}", aLabel: "Label for slot {0}", aPlate: "Plate for slot {0}",
+    maxAll: "Max all", aTune: "Max out performance for the car in slot {0}",
     aProg: "Progression {0}", aValue: "Value of {0}"
   }
 };
@@ -643,7 +657,17 @@ var OFF = {
   slot0: 0x24FD,     // LocalOptions
   slotStride: 8176,
   slotLabel: 32,     // campo de rotulo dentro do slot
-  slotPlate: 2186
+  slotPlate: 2186,
+
+  /* Desempenho. O bloco de tune do carro N comeca um stride ANTES do slot que
+     guarda o nome dele: nomes em 0x24FD, tune em 1293, diferenca de 8176. Sao
+     13 categorias, nivel 0 a 2, e a porcentagem que a loja mostra e a soma
+     sobre 26. Carro com tudo em 2 marca 100%. */
+  tuneBase: 1293,    // LocalOptions
+  tuneLv: 95,        // 13 bytes de nivel, dentro do bloco
+  tuneN: 13,
+  tuneMax: 2,
+  tunePct: 126
 };
 
 /* Roster extraido de tune/vehicle/0xe94bde63. So estes nomes carregam. */
@@ -719,6 +743,17 @@ function u32(at) { return view.getUint32(at); }
 function setU32(at, v) { view.setUint32(at, v >>> 0); }
 
 function slotAt(n) { return sec("LocalOptions").data + OFF.slot0 + n * OFF.slotStride; }
+
+function tuneAt(n) { return sec("LocalOptions").data + OFF.tuneBase + n * OFF.slotStride; }
+function tuneOf(n) { return bytes[tuneAt(n) + OFF.tunePct]; }
+
+/* Poe as 13 categorias no teto. A porcentagem e derivada, mas o jogo guarda ela
+   gravada, entao escrevemos as duas coisas pra nao deixar o save incoerente. */
+function maxTune(n) {
+  var o = tuneAt(n);
+  for (var i = 0; i < OFF.tuneN; i++) bytes[o + OFF.tuneLv + i] = OFF.tuneMax;
+  bytes[o + OFF.tunePct] = 100;
+}
 
 function slotCount() {
   var lo = sec("LocalOptions");
@@ -798,7 +833,9 @@ function render() {
       '<span class="n">' + n + '</span>' +
       '<select data-slot="' + n + '" aria-label="' + t("aCar", n) + '">' + opts + "</select>" +
       '<input class="lbl" type="text" maxlength="31" data-label="' + n + '" aria-label="' + t("aLabel", n) + '">' +
-      '<input class="plate" type="text" maxlength="7" pattern="[A-Z0-9]{7}" data-plate="' + n + '" aria-label="' + t("aPlate", n) + '">';
+      '<input class="plate" type="text" maxlength="7" pattern="[A-Z0-9]{7}" data-plate="' + n + '" aria-label="' + t("aPlate", n) + '">' +
+      '<button class="btn mini tune" type="button" data-tune="' + n + '" aria-label="' + t("aTune", n) + '"' +
+      (tuneOf(n) === 100 ? " data-full" : "") + ">" + tuneOf(n) + "%</button>";
     host.appendChild(row);
     row.querySelector("select").value = s.car;
     row.querySelector("input.lbl").value = s.label;
@@ -843,6 +880,29 @@ function render() {
       mark();
     });
   });
+
+  function paintTune() {
+    host.querySelectorAll("button.tune").forEach(function (b) {
+      var pct = tuneOf(+b.dataset.tune);
+      b.textContent = pct + "%";
+      if (pct === 100) b.setAttribute("data-full", ""); else b.removeAttribute("data-full");
+    });
+  }
+
+  paintTune();
+  host.querySelectorAll("button.tune").forEach(function (b) {
+    b.addEventListener("click", function () {
+      maxTune(+b.dataset.tune);
+      paintTune();
+      mark();
+    });
+  });
+
+  el("maxAll").onclick = function () {
+    for (var i = 0; i < total; i++) if (readSlot(i).car) maxTune(i);
+    paintTune();
+    mark();
+  };
 
   renderProg();
   renderStats();

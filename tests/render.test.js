@@ -19,6 +19,7 @@ var assert = require("assert");
 var ROOT = path.join(__dirname, "..");
 
 var OFF_LABEL = 32, OFF_PLATE = 2186, SLOT_STRIDE = 8176, SLOT0 = 0x24FD;
+var TUNE_BASE = 1293, TUNE_LV = 95, TUNE_N = 13, TUNE_PCT = 126;
 
 // ---------- save sintetico ----------
 // Mesmo formato do real, pequeno. Nenhum dado do jogo entra no repositorio.
@@ -62,6 +63,11 @@ function buildSave() {
   b[at.LocalOptions + 0x53F] = 1;          // contador de carros
   b[at.LocalOptions + 0x543] = 0;
 
+  // bloco de tune do carro 0: meio tunado, pra a leitura ter o que mostrar
+  var t0 = at.LocalOptions + TUNE_BASE;
+  for (var k = 0; k < TUNE_N; k++) b[t0 + TUNE_LV + k] = 1;
+  b[t0 + TUNE_PCT] = 50;
+
   // slot 0 ocupado, pra ter o que ler na abertura
   var s0 = at.LocalOptions + SLOT0;
   "vp_vw_golf_83".split("").forEach(function (c, i) { b[s0 + i] = c.charCodeAt(0); });
@@ -93,7 +99,8 @@ function makeEl(id) {
     classList: { add: noop, remove: noop, toggle: noop, contains: function () { return false; } },
     addEventListener: function (type, fn) { e._on[type] = fn; },
     removeEventListener: noop, appendChild: noop, removeChild: noop, remove: noop,
-    setAttribute: noop, focus: noop, blur: noop, click: noop, scrollIntoView: noop,
+    setAttribute: noop, removeAttribute: noop, focus: noop, blur: noop,
+    click: noop, scrollIntoView: noop,
     getAttribute: function () { return null; },
     closest: function () { return e; },
     querySelector: function () { return makeEl("x"); },
@@ -111,13 +118,16 @@ var SLOTS = 0, CELLS = 0, rows = null, cells = null;
 
 function buildRow(i) {
   var sel = makeEl("sel" + i), lbl = makeEl("lbl" + i), plate = makeEl("plate" + i);
+  var tune = makeEl("tune" + i);
   var row = makeEl("row" + i);
   sel.dataset.slot = String(i);
   lbl.dataset.label = String(i);
   plate.dataset.plate = String(i);
+  tune.dataset.tune = String(i);
+  row.tune = tune;
   row.querySelector = function (s) { return s === "select" ? sel : s === "input.plate" ? plate : lbl; };
   sel.closest = lbl.closest = plate.closest = function () { return row; };
-  return { row: row, sel: sel, lbl: lbl, plate: plate };
+  return { row: row, sel: sel, lbl: lbl, plate: plate, tune: tune };
 }
 
 function buildCell(i) {
@@ -140,6 +150,7 @@ function group(sel) {
   if (sel === "select") return rows.map(function (r) { return r.sel; });
   if (sel === "input.lbl") return rows.map(function (r) { return r.lbl; });
   if (sel === "input.plate") return rows.map(function (r) { return r.plate; });
+  if (sel === "button.tune") return rows.map(function (r) { return r.tune; });
   if (sel === ".cell") return cells;
   return [];
 }
@@ -296,6 +307,45 @@ r1.plate._on.input.call(r1.plate);
 assert.strictEqual(r1.plate.value, "AB1234", "os caracteres invalidos nao foram filtrados");
 assert.strictEqual(str(plateAt, 7), "XYZ9876", "a placa filtrada ficou curta e gravou assim mesmo");
 
+// ---------- desempenho ----------
+// 13 categorias de 0 a 2. A porcentagem que a loja mostra e a soma sobre 26,
+// entao tudo em 2 tem que marcar 100.
+
+var loAt = ctx.secs.list.filter(function (s) { return s.name === "LocalOptions"; })[0].data;
+function tuneBlock(n) { return loAt + TUNE_BASE + n * SLOT_STRIDE; }
+
+var r0 = rows[0];
+assert.strictEqual(typeof r0.tune._on.click, "function", "o botao de tune nao foi ligado");
+if (!real) {
+  assert.strictEqual(r0.tune.textContent, "50%", "o botao nao mostrou a porcentagem lida do save");
+}
+
+r0.tune._on.click.call(r0.tune);
+var t0 = tuneBlock(0);
+for (var c = 0; c < TUNE_N; c++) {
+  assert.strictEqual(ctx.bytes[t0 + TUNE_LV + c], 2, "categoria " + c + " nao foi para o nivel 2");
+}
+assert.strictEqual(ctx.bytes[t0 + TUNE_PCT], 100, "a porcentagem nao foi para 100");
+assert.strictEqual(r0.tune.textContent, "100%", "o botao nao atualizou depois do clique");
+
+// o bloco seguinte nao pode ser tocado: um stride adiante, byte a byte
+var t1 = tuneBlock(1);
+assert.notStrictEqual(t1, t0, "os blocos de tune colidiram");
+r0.tune._on.click.call(r0.tune);
+assert.strictEqual(ctx.bytes[t0 + TUNE_LV + TUNE_N], 0,
+  "escreveu um byte alem das 13 categorias");
+
+// tunar todos
+dom.byId.maxAll.onclick();
+for (var s2 = 0; s2 < SLOTS; s2++) {
+  var nome = "";
+  var so = loAt + SLOT0 + s2 * SLOT_STRIDE;
+  for (var q = 0; q < 32; q++) { var ch = ctx.bytes[so + q]; if (!ch || ch === 0xCD) break; nome += String.fromCharCode(ch); }
+  if (!nome || nome === "blank") continue;
+  assert.strictEqual(ctx.bytes[tuneBlock(s2) + TUNE_PCT], 100,
+    "tunar todos deixou o slot " + s2 + " de fora");
+}
+
 // ---------- progressao ----------
 
 var prog = dom.byId.prog;
@@ -324,4 +374,4 @@ assert.strictEqual(ctx.bytes.length, sizeBefore, "o tamanho do arquivo mudou");
 
 console.log("ok - " + (real ? "save real" : "save sintetico") + ": " +
   SLOTS + " slots, " + CELLS + " blocos, " + ctx.STATS.length + " stats. " +
-  "Carteira, veiculo, rotulo, placa e progressao gravam; o save segue valido.");
+  "Carteira, veiculo, rotulo, placa, desempenho e progressao gravam; o save segue valido.");

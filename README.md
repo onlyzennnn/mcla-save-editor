@@ -38,9 +38,16 @@ validate, and neither one ever changes the file size.
 
 **[Open the editor](https://onlyzennnn.github.io/mcla-save-editor/)** — drop the save in, edit, download the patched file. It runs entirely in the browser; the save never leaves your machine. `index.html` is the whole thing, so downloading that one file and opening it offline works the same way.
 
-For the command line, `scripts/mcla-save-editor.ps1` covers `info`, `garage`, `roster`, `cars`, `setcar`, `money`, `rep`, `progress`, `stats`, `find`, `get`, `set`, `diff` and `selftest`.
+It edits money, reputation, career progression, the garage slots (vehicle, label, plate) and
+**performance upgrades** — a button per car maxes all thirteen categories, or one button does the
+whole garage. There is a language selector in the corner.
 
-The UI text in both is Brazilian Portuguese.
+For the command line, `scripts/mcla-save-editor.ps1` covers `info`, `garage`, `roster`, `cars`,
+`setcar`, `money`, `rep`, `progress`, `stats`, `find`, `get`, `set`, `diff` and `selftest`. The
+performance feature is in the browser editor only.
+
+`tests/render.test.js` runs the page's own script against a synthetic save in a minimal DOM and
+checks that every field actually reaches the bytes. Pass a path to run it against a real `mc4.sav`.
 
 ## Format
 
@@ -85,11 +92,17 @@ Offsets below are relative to a section's **data** start, not to the file.
 
 | Offset | Type | Meaning |
 |---|---|---|
-| `+0x2D9` | u32 | Money |
+| `+0x2D9` | u32 | Money. See the note below: the offset is computed, not fixed |
 | `+0x2DD` | u32 | Unknown. **Do not write.** See [What does not work](#what-does-not-work). |
 | `+0x2E1` | u32 | Reputation |
 | `+0x2E5` | u32 | Number of progression blocks (43) |
 | `+0x2E9` | — | Progression blocks, 65 bytes each: name, zero padding, and a completion flag in the **last** byte of the block |
+
+Money is not at a fixed offset. `Career+4` is a version byte that must read `0x0B`, `Career+5` is a
+u32 count, and money sits at `Career + 9 + count * 0x30`. Every save seen here has a count of 15,
+which works out to `0x2D9` — but a save with a different count puts money somewhere else, so
+compute it. This structure is confirmed by [unknownv2/save-editor-tools](https://github.com/unknownv2/save-editor-tools/blob/dev/Midnight%20Club%20LA/MidnightClubLA.cs),
+a 2013 editor whose reader matches this container byte for byte.
 
 Career also holds race series names (`hw_tournament1`, `dt_local_hangout1_series`, and so on) and
 per-class counters in 65-byte blocks named `Tuner_0`, `Muscle_0`, `Exotic_0`, `Luxury_0`. Those
@@ -101,6 +114,7 @@ counters track races run with each class; they are not unlocks.
 |---|---|---|
 | `+0x53F` | u8 | Number of cars the game reads |
 | `+0x543` | u8 | Index of the last car (count minus one) |
+| `+1293` | — | Performance blocks, same 8,176 stride as the slots |
 | `+0x24FD` | — | Garage slots, 29 of them, 8,176 bytes each |
 
 **The garage is read sequentially from slot 0 and stops at the counter.** A car written into a
@@ -116,8 +130,43 @@ Inside a slot:
 | `+2186` | 7 | License plate, exactly seven characters |
 | `+687`, `+1215` | 1 | Per-slot id, assigned by the game |
 
-A slot the game filled by purchase and a slot written by hand differ only in those fields. The
-slot carries no wheel, part or tuning data.
+A slot the game filled by purchase and a slot written by hand differ only in those fields, so an
+injected car renders with whatever wheels the game picks by default. The rest of the 8,176 bytes is
+not empty — a car carries roughly 4,000 bytes of dense, unaligned data in here, and it changes as
+the car is customized. Visual customization has not been decoded.
+
+### Performance upgrades
+
+These live in their own array, **not** in the garage slot:
+
+```
+LocalOptions + 1293 + N * 8176
+```
+
+Same stride as the slots, but the base sits exactly one stride earlier, so the block for the car
+named in slot N is one slot "behind" it. That offset is what made this hard to see: buying a part
+for the car in slot 1 writes into the bytes that look like slot 0.
+
+| Offset in the block | Size | Meaning |
+|---|---|---|
+| `+95` | 13 | One byte per upgrade category, level `0`, `1` or `2` |
+| `+126` | 1 | Tune percentage the shop displays, `0` to `100` |
+
+The percentage is the sum of the 13 levels over 26. All thirteen at level 2 is 100%, thirteen at
+level 1 is 50%, and two single levels read as 8%. Every car in a 12-car garage matched that
+arithmetic exactly. Writing level 2 across the thirteen bytes and 100 into `+126` **was confirmed
+in game**: the car showed 100% tune with every category installed.
+
+### Per-car ledger
+
+```
+LocalOptions + 246573 + N * 336
+```
+
+A second per-car array, keyed by the **Jenkins one-at-a-time hash of the vehicle name** at `+71`,
+with cumulative money spent on that car at `+77` (mirrored at `+149`) and a bitmask at `+140..+144`
+that tracks purchases. It is bookkeeping only: zeroing an entire record changed nothing in game, so
+do not bother writing here.
 
 ### Stats
 
@@ -151,6 +200,8 @@ Read on screen in a running game, not inferred:
 - Slot prefab name and label, confirmed by a car appearing in the garage with the right model and the right text
 - Reputation at `Career+0x2E1`, matching the number on screen
 - Progression flags, matching the player's actual career position
+- Performance upgrades: writing level 2 into the thirteen bytes at `+95` and 100 into `+126` made
+  the car read 100% tune in the shop with every category installed
 
 ## What does not work
 
@@ -170,9 +221,17 @@ Spending time here again is not necessary.
   byte-identical outside name, label, plate and id, so a car injected into the garage renders with
   whatever the game resolves by default.
 
-Still open: which field unlocks vehicle groups. `RubberbandMgr` holds three values that went
-`[14, 2, 2]` to `[-4, 3, 3]` across a session that included an unlock, which makes it the only
-live candidate. That session also included several races, so the signal is not isolated.
+- **The per-car ledger is not the upgrade state.** Zeroing an entire 336-byte record, and separately
+  setting its `+140..+144` bitmask to all ones, both left the shop exactly as it was.
+- **`RubberbandMgr` is not a difficulty dial.** It is three int32 values followed by 188 bytes of
+  `0xCD` filler. The values moved `[14, 2, 2]` to `[-4, 3, 3]` across a session, which is runtime
+  bookkeeping, not a setting.
+
+Still open: which field unlocks vehicle groups, and where visual customization is stored. The
+vehicle's group itself is game data, not save data — `tune/vehicle/0xe94bde63` carries a `Group`
+and an `UnlockingGroup` per car, along with `BaseSpeed`, `ModsSpeed`, `BaseAccel`, `ModsAccel`,
+`BaseHndlg` and `ModsHndlg`. The `Mods` values are the ceiling a fully upgraded car reaches, which
+is what the 13 levels above interpolate toward.
 
 ## Not in this repository
 
